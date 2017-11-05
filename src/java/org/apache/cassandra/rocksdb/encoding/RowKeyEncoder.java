@@ -99,10 +99,10 @@ public class RowKeyEncoder
 
     private static void appendPartitionKeyParts(List<Pair<AbstractType, ByteBuffer>> keyParts, List<ColumnDefinition> partitionKeyColumns, DecoratedKey partitionKey)
     {
-        ByteBuffer paritionkeyBuffer = partitionKey.getKey().duplicate();
+        ByteBuffer partitionKeyBuffer = partitionKey.getKey().duplicate();
         if (partitionKeyColumns.size() == 1) {
             // optimize for none composite situation
-            keyParts.add(Pair.create(partitionKeyColumns.get(0).type, paritionkeyBuffer));
+            keyParts.add(Pair.create(partitionKeyColumns.get(0).type, partitionKeyBuffer));
             return;
         }
 
@@ -112,7 +112,7 @@ public class RowKeyEncoder
             types.add(partitionKeyColumn.type);
         }
         CompositeType compositeType = CompositeType.getInstance(types);
-        ByteBuffer[] buffers = compositeType.split(paritionkeyBuffer);
+        ByteBuffer[] buffers = compositeType.split(partitionKeyBuffer);
         for (int i = 0; i < buffers.length; i++)
         {
             keyParts.add(Pair.create(types.get(i), buffers[i]));

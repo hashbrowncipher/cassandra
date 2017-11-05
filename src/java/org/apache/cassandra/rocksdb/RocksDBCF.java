@@ -385,7 +385,7 @@ public class RocksDBCF implements RocksDBCFMBean
         {
             return getProperty(property);
         } catch (Throwable e) {
-            logger.warn("Failed to get rocksBD property " + property, e);
+            logger.warn("Failed to get rocksDB property " + property, e);
             return "Failed to get property:" + property + ", reason:" + e.toString();
         }
     }
@@ -399,7 +399,7 @@ public class RocksDBCF implements RocksDBCFMBean
         }
         catch (Throwable e)
         {
-            logger.warn("Failed to dump parition " + partitionKey, e);
+            logger.warn("Failed to dump partition " + partitionKey, e);
             return "Failed to dump:" + partitionKey + ", reason:" + e.toString();
         }
     }
