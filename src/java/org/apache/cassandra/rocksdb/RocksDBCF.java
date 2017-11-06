@@ -82,7 +82,7 @@ import static org.apache.cassandra.rocksdb.RocksDBConfigs.ROCKSDB_DIR;
 public class RocksDBCF implements RocksDBCFMBean
 {
     private static final Logger logger = LoggerFactory.getLogger(RocksDBCF.class);
-    private final UUID cfID;
+    private final UUID cfId;
     private final ColumnFamilyStore cfs;
     private final IPartitioner partitioner;
     private final RocksDBEngine engine;
@@ -100,11 +100,12 @@ public class RocksDBCF implements RocksDBCFMBean
     public RocksDBCF(ColumnFamilyStore cfs) throws RocksDBException
     {
         this.cfs = cfs;
-        cfID = cfs.metadata.cfId;
+        cfId = cfs.metadata.cfId;
         partitioner = cfs.getPartitioner();
         engine = (RocksDBEngine) cfs.engine;
 
-        String rocksDBTableDir = ROCKSDB_DIR + "/" + cfs.keyspace.getName() + "/" + cfs.name;
+        rocksDBTableDir = String.format("%s/%s/%s-%s", ROCKSDB_DIR, cfs.keyspace.getName(), cfs.name,
+                ByteBufferUtil.bytesToHex(ByteBufferUtil.bytes(cfId)));
         FileUtils.createDirectory(ROCKSDB_DIR);
         FileUtils.createDirectory(rocksDBTableDir);
 
@@ -113,8 +114,10 @@ public class RocksDBCF implements RocksDBCFMBean
         
         int gcGraceSeconds = cfs.metadata.params.gcGraceSeconds;
         boolean purgeTtlOnExpiration = cfs.metadata.params.purgeTtlOnExpiration;
-        compactionFilter = new CassandraCompactionFilter(purgeTtlOnExpiration, gcGraceSeconds);
-        mergeOperator = new CassandraValueMergeOperator(gcGraceSeconds, MERGE_OPERANDS_LIMIT);
+        CassandraCompactionFilter compactionFilter = new CassandraCompactionFilter(purgeTtlOnExpiration,
+                gcGraceSeconds);
+        CassandraValueMergeOperator mergeOperator = new CassandraValueMergeOperator(gcGraceSeconds,
+                MERGE_OPERANDS_LIMIT);
         
         DBOptions dbOptions = new DBOptions();
         List<ColumnFamilyDescriptor> cfDescs = new ArrayList<>();
@@ -339,7 +342,7 @@ public class RocksDBCF implements RocksDBCFMBean
 
     public UUID getCfID()
     {
-        return cfID;
+        return cfId;
     }
 
     @Override
