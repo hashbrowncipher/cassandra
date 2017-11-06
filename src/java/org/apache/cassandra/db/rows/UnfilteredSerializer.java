@@ -37,7 +37,7 @@ import org.apache.cassandra.utils.WrappedException;
  *
  *   <flags> is a byte (or two) whose bits are flags used by the rest of the serialization. Each
  *       flag is defined/explained below as the "Unfiltered flags" constants. One of those flags
- *       is an extension flag, and if present, trigger the rid of another byte that contains more
+ *       is an extension flag, and if present, trigger the read of another byte that contains more
  *       flags. If the extension is not set, defaults are assumed for the flags of that 2nd byte.
  *   <row> is <clustering><size>[<timestamp>][<ttl>][<deletion>]<sc1>...<sci><cc1>...<ccj> where
  *       <clustering> is the row clustering as serialized by {@code Clustering.serializer} (note

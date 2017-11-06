@@ -344,7 +344,7 @@ public class Keyspace
                                                                                     ksm.params.replication.options);
     }
 
-    // best invoked on the compaction mananger.
+    // best invoked on the compaction manager.
     public void dropCf(UUID cfId)
     {
         assert columnFamilyStores.containsKey(cfId);

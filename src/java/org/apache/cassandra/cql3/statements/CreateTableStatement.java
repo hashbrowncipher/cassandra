@@ -262,7 +262,7 @@ public class CreateTableStatement extends SchemaAlteringStatement
                 stmt.clusteringTypes.add(type);
             }
 
-            // We've handled anything that is not a rpimary key so stmt.columns only contains NON-PK columns. So
+            // We've handled anything that is not a primary key so stmt.columns only contains NON-PK columns. So
             // if it's a counter table, make sure we don't have non-counter types
             if (stmt.hasCounters)
             {

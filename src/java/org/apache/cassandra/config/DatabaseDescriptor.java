@@ -570,7 +570,7 @@ public class DatabaseDescriptor
         {
             String defaultDataDir = System.getProperty("cassandra.storagedir", null);
             if (defaultDataDir == null)
-                throw new ConfigurationException("data_file_directories is not missing and -Dcassandra.storagedir is not set", false);
+                throw new ConfigurationException("data_file_directories is missing and -Dcassandra.storagedir is not set", false);
             conf.data_file_directories = new String[]{ defaultDataDir + File.separator + "data" };
         }
 
