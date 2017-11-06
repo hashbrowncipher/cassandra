@@ -82,7 +82,7 @@ import static org.apache.cassandra.rocksdb.RocksDBConfigs.ROCKSDB_DIR;
 public class RocksDBCF implements RocksDBCFMBean
 {
     private static final Logger logger = LoggerFactory.getLogger(RocksDBCF.class);
-    private final UUID cfID;
+    private final UUID cfId;
     private final ColumnFamilyStore cfs;
     private final IPartitioner partitioner;
     private final RocksDBEngine engine;
@@ -100,7 +100,7 @@ public class RocksDBCF implements RocksDBCFMBean
     public RocksDBCF(ColumnFamilyStore cfs) throws RocksDBException
     {
         this.cfs = cfs;
-        cfID = cfs.metadata.cfId;
+        cfId = cfs.metadata.cfId;
         partitioner = cfs.getPartitioner();
         engine = (RocksDBEngine) cfs.engine;
 
@@ -298,7 +298,7 @@ public class RocksDBCF implements RocksDBCFMBean
             rocksDB.close();
 
             // remove the rocksdb instance, since it's not usable
-            engine.rocksDBFamily.remove(cfID);
+            engine.rocksDBFamily.remove(cfId);
         }
     }
 
@@ -337,9 +337,9 @@ public class RocksDBCF implements RocksDBCFMBean
         return sb.toString();
     }
 
-    public UUID getCfID()
+    public UUID getCfId()
     {
-        return cfID;
+        return cfId;
     }
 
     @Override
