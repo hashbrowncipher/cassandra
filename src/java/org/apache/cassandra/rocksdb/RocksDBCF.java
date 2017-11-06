@@ -305,6 +305,12 @@ public class RocksDBCF implements RocksDBCFMBean
         }
     }
 
+    protected void destroy() throws RocksDBException {
+        logger.info("Deleting rocksdb table: " + cfs.name);
+        rocksDB.destroyDB(rocksDBTableDir, new Options());
+    }
+
+
     public String dumpPrefix(byte[] rocksKeyPrefix, int limit)
     {
         StringBuilder sb = new StringBuilder();
