@@ -52,6 +52,7 @@ import org.apache.cassandra.rocksdb.streaming.RocksDBStreamWriter;
 import org.apache.cassandra.rocksdb.tools.SanityCheckUtils;
 import org.apache.cassandra.rocksdb.tools.StreamingConsistencyCheckUtils;
 import org.apache.cassandra.streaming.StreamSession;
+import org.apache.cassandra.utils.ByteBufferUtil;
 import org.apache.cassandra.utils.FBUtilities;
 import org.apache.cassandra.utils.JVMStabilityInspector;
 import org.apache.cassandra.utils.Hex;
@@ -106,7 +107,8 @@ public class RocksDBCF implements RocksDBCFMBean
         partitioner = cfs.getPartitioner();
         engine = (RocksDBEngine) cfs.engine;
 
-        rocksDBTableDir = ROCKSDB_DIR + "/" + cfs.keyspace.getName() + "/" + cfs.name;
+        rocksDBTableDir = String.format("%s/%s/%s-%s",
+                ROCKSDB_DIR, cfs.keyspace.getName(), cfs.name, ByteBufferUtil.bytesToHex(ByteBufferUtil.bytes(cfId)));
         FileUtils.createDirectory(ROCKSDB_DIR);
         FileUtils.createDirectory(rocksDBTableDir);
 
