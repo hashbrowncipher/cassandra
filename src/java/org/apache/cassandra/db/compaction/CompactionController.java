@@ -19,9 +19,11 @@ package org.apache.cassandra.db.compaction;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.PriorityQueue;
 import java.util.Set;
 
 import org.slf4j.Logger;
@@ -195,17 +197,31 @@ public class CompactionController implements AutoCloseable
             return Long.MIN_VALUE;
 
         List<SSTableReader> filteredSSTables = overlappingTree.search(key);
-        long min = Long.MAX_VALUE;
-        for (SSTableReader sstable : filteredSSTables)
-        {
-            // if we don't have bloom filter(bf_fp_chance=1.0 or filter file is missing),
-            // we check index file instead.
-            if (sstable.getBloomFilter() instanceof AlwaysPresentFilter && sstable.getPosition(key, SSTableReader.Operator.EQ, false) != null)
-                min = Math.min(min, sstable.getMinTimestamp());
-            else if (sstable.getBloomFilter().isPresent(key.getKey()))
-                min = Math.min(min, sstable.getMinTimestamp());
+
+        PriorityQueue<SSTableReader> sortedSSTables = new PriorityQueue<>(filteredSSTables.size(),
+                Comparator.comparing(SSTableReader::getMinTimestamp));
+        sortedSSTables.addAll(filteredSSTables);
+
+
+        while(true) {
+            SSTableReader sstable = sortedSSTables.poll();
+            if(sstable == null) {
+                break;
+            }
+
+            if ((
+                    sstable.getBloomFilter() instanceof AlwaysPresentFilter &&
+                    sstable.getPosition(key, SSTableReader.Operator.EQ, false) != null
+                )
+                ||
+                sstable.getBloomFilter().isPresent(key.getKey())
+            )
+            {
+                return sstable.getMinTimestamp();
+            }
         }
-        return min;
+
+        return Long.MAX_VALUE;
     }
 
     public void close()
