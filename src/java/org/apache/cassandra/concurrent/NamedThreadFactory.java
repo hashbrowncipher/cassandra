@@ -17,6 +17,14 @@
  */
 package org.apache.cassandra.concurrent;
 
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -31,10 +39,54 @@ import io.netty.util.concurrent.FastThreadLocalThread;
 
 public class NamedThreadFactory implements ThreadFactory
 {
+    private static final Path THREAD_SELF_PATH = Paths.get("/proc/thread-self");
+    private static final Path SELF_PATH = Paths.get("/proc/self/cgroup");
+    private static final Path CGROUP_FS_PATH = Paths.get("/sys/fs/cgroup/cpu,cpuacct");
+    private static final Path CGROUP_TASKS_PATH = getCPUCGroupPath();
+    private static final BufferedWriter BACKGROUND_TASKS_WRITER = initializeBackgroundTasksWriter();
+
     private static volatile String globalPrefix;
     public static void setGlobalPrefix(String prefix) { globalPrefix = prefix; }
 
     public final String id;
+
+
+    private static String getCPUCGroup() throws IOException {
+        try(BufferedReader r = Files.newBufferedReader(SELF_PATH, StandardCharsets.UTF_8)) {
+            while(true) {
+                String line = r.readLine();
+                if(line == null) {
+                    throw new RuntimeException();
+                }
+
+                String[] components = line.split(":", 3);
+                System.err.println(components[1]);
+                if(components[1].equals("cpu,cpuacct")) {
+                    return components[2];
+                }
+            }
+        }
+    }
+
+    private static Path getCPUCGroupPath() {
+        try {
+            return CGROUP_FS_PATH.resolve(getCPUCGroup().substring(1));
+        } catch(IOException ex) {
+            throw new RuntimeException(ex);
+        }
+    }
+
+    private static BufferedWriter initializeBackgroundTasksWriter()
+    {
+        try {
+            Path background = CGROUP_TASKS_PATH.resolve("background");
+
+            return new BufferedWriter(new FileWriter(background.resolve("tasks").toFile()));
+        } catch(IOException ex) {
+            throw new RuntimeException(ex);
+        }
+    }
+
     private final int priority;
     private final ClassLoader contextClassLoader;
     private final ThreadGroup threadGroup;
@@ -62,7 +114,14 @@ public class NamedThreadFactory implements ThreadFactory
     {
         String name = id + ':' + n.getAndIncrement();
         String prefix = globalPrefix;
-        Thread thread = new FastThreadLocalThread(threadGroup, threadLocalDeallocator(runnable), prefix != null ? prefix + name : name);
+
+        Thread thread;
+        if(id.equals("CompactionExecutor") || id.equals("ValidationExecutor") || id.equals("StreamReceiveTask") || id.startsWith("Repair#")) {
+            thread = new Thread(cgroupRunnable(runnable), name);
+        } else {
+            thread = new FastThreadLocalThread(threadGroup, threadLocalDeallocator(runnable), prefix != null ? prefix + name : name);
+        }
+
         thread.setPriority(priority);
         thread.setDaemon(true);
         if (contextClassLoader != null)
@@ -77,13 +136,26 @@ public class NamedThreadFactory implements ThreadFactory
      */
     public static Runnable threadLocalDeallocator(Runnable r)
     {
-        return () ->
-        {
+        return () -> {
             try {
                 r.run();
             } finally {
                 FastThreadLocal.removeAll();
             }
+        };
+    }
+
+    private static Runnable cgroupRunnable(Runnable r) {
+        return () -> {
+                try {
+                    String tid = Files.readSymbolicLink(THREAD_SELF_PATH).getFileName().toString();
+                    BACKGROUND_TASKS_WRITER.write(tid + "\n");
+                    BACKGROUND_TASKS_WRITER.flush();
+                } catch (IOException ex) {
+                    throw new RuntimeException(ex);
+                }
+
+            r.run();
         };
     }
 }
