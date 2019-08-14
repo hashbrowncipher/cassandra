@@ -21,12 +21,15 @@ import java.io.*;
 import java.util.Map;
 
 import org.apache.cassandra.db.*;
+import org.apache.cassandra.db.compaction.OperationType;
 import org.apache.cassandra.db.transform.Transformation;
+import org.apache.cassandra.io.compress.LZ4Compressor;
 import org.apache.cassandra.io.sstable.*;
 import org.apache.cassandra.io.sstable.format.SSTableReader;
 import org.apache.cassandra.io.sstable.format.SSTableWriter;
 
 import org.apache.cassandra.db.lifecycle.LifecycleNewTracker;
+import org.apache.cassandra.schema.CompressionParams;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.apache.cassandra.config.CFMetaData;
@@ -70,9 +73,22 @@ public class BigTableWriter extends SSTableWriter
 
         if (compression)
         {
+            CompressionParams compressionParams = metadata.params.compression;
+
+            if (
+                lifecycleNewTracker.opType() == OperationType.FLUSH && (
+                    compressionParams.getSstableCompressor() == null ||
+                    compressionParams.getSstableCompressor().getClass() != LZ4Compressor.class
+                )
+            )
+            {
+                //CompressionParams.DEFAULT is LZ4 with 64kB chunks
+                compressionParams = CompressionParams.DEFAULT;
+            }
+
             dataFile = SequentialWriter.open(getFilename(),
                                              descriptor.filenameFor(Component.COMPRESSION_INFO),
-                                             metadata.params.compression,
+                                             compressionParams,
                                              metadataCollector);
             dbuilder = SegmentedFile.getCompressedBuilder((CompressedSequentialWriter) dataFile);
         }
