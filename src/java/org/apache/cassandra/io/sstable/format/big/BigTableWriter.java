@@ -25,7 +25,10 @@ import java.util.Collection;
 import java.util.Map;
 import java.util.Optional;
 
+import org.apache.cassandra.db.compaction.OperationType;
 import org.apache.cassandra.db.lifecycle.LifecycleNewTracker;
+import org.apache.cassandra.io.compress.LZ4Compressor;
+import org.apache.cassandra.schema.CompressionParams;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -82,11 +85,24 @@ public class BigTableWriter extends SSTableWriter
 
         if (compression)
         {
+            CompressionParams compressionParams = metadata.params.compression;
+
+            if (
+                    lifecycleNewTracker.opType() == OperationType.FLUSH && (
+                            compressionParams.getSstableCompressor() == null ||
+                                    compressionParams.getSstableCompressor().getClass() != LZ4Compressor.class
+                    )
+            )
+            {
+                //CompressionParams.DEFAULT is LZ4 with 64kB chunks
+                compressionParams = CompressionParams.DEFAULT;
+            }
+
             dataFile = new CompressedSequentialWriter(new File(getFilename()),
                                              descriptor.filenameFor(Component.COMPRESSION_INFO),
                                              new File(descriptor.filenameFor(descriptor.digestComponent)),
                                              writerOption,
-                                             metadata.params.compression,
+                                             compressionParams,
                                              metadataCollector);
         }
         else
