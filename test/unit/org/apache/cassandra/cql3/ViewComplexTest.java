@@ -15,7 +15,7 @@ import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
-import org.apache.cassandra.concurrent.SEPExecutor;
+import org.apache.cassandra.concurrent.AbstractLocalAwareExecutorService;
 import org.apache.cassandra.concurrent.Stage;
 import org.apache.cassandra.concurrent.StageManager;
 import org.apache.cassandra.db.ColumnFamilyStore;
@@ -69,8 +69,8 @@ public class ViewComplexTest extends CQLTester
     private void updateViewWithFlush(String query, boolean flush, Object... params) throws Throwable
     {
         executeNet(protocolVersion, query, params);
-        while (!(((SEPExecutor) StageManager.getStage(Stage.VIEW_MUTATION)).getPendingTasks() == 0
-                && ((SEPExecutor) StageManager.getStage(Stage.VIEW_MUTATION)).getActiveCount() == 0))
+        while (!(((AbstractLocalAwareExecutorService) StageManager.getStage(Stage.VIEW_MUTATION)).getPendingTasks() == 0
+                && ((AbstractLocalAwareExecutorService) StageManager.getStage(Stage.VIEW_MUTATION)).getActiveCount() == 0))
         {
             Thread.sleep(1);
         }

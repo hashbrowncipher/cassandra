@@ -29,19 +29,51 @@ import java.util.concurrent.TimeoutException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import org.apache.cassandra.tracing.TraceState;
-import org.apache.cassandra.tracing.Tracing;
 import org.apache.cassandra.utils.concurrent.SimpleCondition;
 import org.apache.cassandra.utils.JVMStabilityInspector;
 
 import static org.apache.cassandra.tracing.Tracing.isTracing;
 
-public abstract class AbstractLocalAwareExecutorService implements LocalAwareExecutorService
+public class AbstractLocalAwareExecutorService implements LocalAwareExecutorService
 {
     private static final Logger logger = LoggerFactory.getLogger(AbstractLocalAwareExecutorService.class);
 
-    protected abstract void addTask(FutureTask<?> futureTask);
-    protected abstract void onCompletion();
+    private final JMXEnabledThreadPoolExecutor executor;
+
+    public AbstractLocalAwareExecutorService(JMXEnabledThreadPoolExecutor executor) {
+        this.executor = executor;
+    }
+
+    protected void addTask(FutureTask<?> futureTask) {
+        executor.execute(futureTask);
+    }
+    protected void onCompletion() {
+    }
+
+    public void shutdown()
+    {
+        executor.shutdown();
+    }
+
+    public List<Runnable> shutdownNow()
+    {
+        return executor.shutdownNow();
+    }
+
+    public boolean isShutdown()
+    {
+        return executor.isShutdown();
+    }
+
+    public boolean isTerminated()
+    {
+        return executor.isTerminated();
+    }
+
+    public boolean awaitTermination(long l, TimeUnit timeUnit) throws InterruptedException
+    {
+        return executor.awaitTermination(l, timeUnit);
+    }
 
     /** Task Submission / Creation / Objects **/
 
@@ -226,5 +258,19 @@ public abstract class AbstractLocalAwareExecutorService implements LocalAwareExe
     public void execute(Runnable command, ExecutorLocals locals)
     {
         addTask(newTaskFor(command, null, locals));
+    }
+
+    public void maybeExecuteImmediately(Runnable command)
+    {
+        FutureTask<?> ft = newTaskFor(command, null);
+        ft.run();
+    }
+
+    public long getPendingTasks() {
+        return executor.getPendingTasks();
+    }
+
+    public long getActiveCount() {
+        return executor.getActiveCount();
     }
 }

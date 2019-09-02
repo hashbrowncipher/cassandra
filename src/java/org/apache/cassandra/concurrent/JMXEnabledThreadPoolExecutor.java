@@ -152,6 +152,10 @@ public class JMXEnabledThreadPoolExecutor extends DebuggableThreadPoolExecutor i
         setMaximumPoolSize(number);
     }
 
+    public long getPendingTasks() {
+        return getTaskCount() - getCompletedTaskCount();
+    }
+
     @Override
     protected void onInitialRejection(Runnable task)
     {

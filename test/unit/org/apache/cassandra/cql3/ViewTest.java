@@ -38,7 +38,7 @@ import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.Row;
 import com.datastax.driver.core.exceptions.InvalidQueryException;
 import org.apache.cassandra.SchemaLoader;
-import org.apache.cassandra.concurrent.SEPExecutor;
+import org.apache.cassandra.concurrent.AbstractLocalAwareExecutorService;
 import org.apache.cassandra.concurrent.Stage;
 import org.apache.cassandra.concurrent.StageManager;
 import org.apache.cassandra.config.CFMetaData;
@@ -90,8 +90,8 @@ public class ViewTest extends CQLTester
     private void updateView(String query, Object... params) throws Throwable
     {
         executeNet(protocolVersion, query, params);
-        while (!(((SEPExecutor) StageManager.getStage(Stage.VIEW_MUTATION)).getPendingTasks() == 0
-                && ((SEPExecutor) StageManager.getStage(Stage.VIEW_MUTATION)).getActiveCount() == 0))
+        while (!(((AbstractLocalAwareExecutorService) StageManager.getStage(Stage.VIEW_MUTATION)).getPendingTasks() == 0
+                && ((AbstractLocalAwareExecutorService) StageManager.getStage(Stage.VIEW_MUTATION)).getActiveCount() == 0))
         {
             Thread.sleep(1);
         }

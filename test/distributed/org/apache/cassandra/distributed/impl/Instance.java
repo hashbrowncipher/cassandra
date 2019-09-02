@@ -36,7 +36,6 @@ import java.util.function.Function;
 
 import org.apache.cassandra.batchlog.BatchlogManager;
 import org.apache.cassandra.concurrent.ScheduledExecutors;
-import org.apache.cassandra.concurrent.SharedExecutorPool;
 import org.apache.cassandra.concurrent.StageManager;
 import org.apache.cassandra.config.Config;
 import org.apache.cassandra.config.DatabaseDescriptor;
@@ -506,8 +505,7 @@ public class Instance extends IsolatedExecutor implements IInvokableInstance
                                 MessagingService.instance()::shutdown
             );
             error = parallelRun(error, executor,
-                                () -> StageManager.shutdownAndWait(1L, MINUTES),
-                                () -> SharedExecutorPool.SHARED.shutdownAndWait(1L, MINUTES)
+                                () -> StageManager.shutdownAndWait(1L, MINUTES)
             );
             error = parallelRun(error, executor,
                                 CommitLog.instance::shutdownBlocking

@@ -39,6 +39,9 @@ import io.netty.handler.codec.MessageToMessageEncoder;
 
 import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableSet;
+import org.apache.cassandra.concurrent.ConcurrentLinkedBlockingQueue;
+import org.apache.cassandra.concurrent.JMXEnabledThreadPoolExecutor;
+import org.apache.cassandra.concurrent.NamedThreadFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -52,7 +55,6 @@ import org.apache.cassandra.transport.messages.*;
 import org.apache.cassandra.service.QueryState;
 import org.apache.cassandra.utils.JVMStabilityInspector;
 
-import static org.apache.cassandra.concurrent.SharedExecutorPool.SHARED;
 
 /**
  * A message from the CQL binary protocol.
@@ -413,10 +415,14 @@ public abstract class Message
 
     public static class Dispatcher extends SimpleChannelInboundHandler<Request>
     {
-        private static final LocalAwareExecutorService requestExecutor = SHARED.newExecutor(DatabaseDescriptor.getNativeTransportMaxThreads(),
-                                                                                            Integer.MAX_VALUE,
-                                                                                            "transport",
-                                                                                            "Native-Transport-Requests");
+        private static final LocalAwareExecutorService requestExecutor = new JMXEnabledThreadPoolExecutor(
+                DatabaseDescriptor.getNativeTransportMaxThreads(),
+                1,
+                TimeUnit.SECONDS,
+                new ConcurrentLinkedBlockingQueue<Runnable>(),
+                new NamedThreadFactory("Native-Transport-Requests"),
+                "transport"
+        );
 
         /**
          * Current count of *request* bytes that are live on the channel.

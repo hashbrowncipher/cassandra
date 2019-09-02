@@ -20,6 +20,7 @@ package org.apache.cassandra.utils.concurrent;
 
 import java.util.Iterator;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicIntegerFieldUpdater;
 import java.util.concurrent.locks.LockSupport;
 
@@ -262,6 +263,16 @@ public final class WaitQueue
          * @throws InterruptedException
          */
         public boolean awaitUntil(long nanos) throws InterruptedException;
+
+        /**
+         * Wait until signalled, or the provided time is elapsed, or the thread is interrupted. If signalled,
+         * isSignalled() will be true on exit, and the method will return true; if timedout, the method will return
+         * false and isCancelled() will be true; if interrupted an InterruptedException will be thrown and isCancelled()
+         * will be true.
+         * @return true if signalled, false if timed out
+         * @throws InterruptedException
+         */
+        public boolean awaitTimeout(long l, TimeUnit timeUint) throws InterruptedException;
     }
 
     /**
@@ -303,6 +314,11 @@ public final class WaitQueue
                 LockSupport.parkNanos(delta);
             }
             return checkAndClear();
+        }
+
+        public boolean awaitTimeout(long l, TimeUnit timeUnit) throws InterruptedException {
+            long until = System.nanoTime() + timeUnit.toNanos(l);
+            return awaitUntil(until);
         }
 
         private void checkInterrupted() throws InterruptedException

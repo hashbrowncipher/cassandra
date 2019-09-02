@@ -31,7 +31,7 @@ import java.util.UUID;
 
 import junit.framework.Assert;
 
-import org.apache.cassandra.concurrent.SEPExecutor;
+import org.apache.cassandra.concurrent.AbstractLocalAwareExecutorService;
 import org.apache.cassandra.concurrent.Stage;
 import org.apache.cassandra.concurrent.StageManager;
 import org.apache.cassandra.config.CFMetaData;
@@ -83,8 +83,8 @@ public class ViewSchemaTest extends CQLTester
     private void updateView(String query, Object... params) throws Throwable
     {
         executeNet(protocolVersion, query, params);
-        while (!(((SEPExecutor) StageManager.getStage(Stage.VIEW_MUTATION)).getPendingTasks() == 0
-                 && ((SEPExecutor) StageManager.getStage(Stage.VIEW_MUTATION)).getActiveCount() == 0))
+        while (!(((AbstractLocalAwareExecutorService) StageManager.getStage(Stage.VIEW_MUTATION)).getPendingTasks() == 0
+                 && ((AbstractLocalAwareExecutorService) StageManager.getStage(Stage.VIEW_MUTATION)).getActiveCount() == 0))
         {
             Thread.sleep(1);
         }
