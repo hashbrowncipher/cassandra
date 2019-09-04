@@ -67,6 +67,10 @@ public class BootStrapper
         streamer.addSourceFilter(new RangeStreamer.FailureDetectorSourceFilter(FailureDetector.instance));
         streamer.addSourceFilter(new RangeStreamer.ExcludeLocalNodeFilter());
 
+        if(!DatabaseDescriptor.isReplacing()) {
+            streamer.addSourceFilter(new RangeStreamer.LocalRackFilter());
+        }
+
         for (String keyspaceName : Schema.instance.getNonSystemKeyspaces())
         {
             AbstractReplicationStrategy strategy = Keyspace.open(keyspaceName).getReplicationStrategy();

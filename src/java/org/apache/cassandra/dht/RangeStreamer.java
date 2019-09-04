@@ -116,6 +116,21 @@ public class RangeStreamer
         }
     }
 
+    public static class LocalRackFilter implements ISourceFilter
+    {
+        private final IEndpointSnitch snitch = DatabaseDescriptor.getEndpointSnitch();
+        private final String rack;
+        private final String datacenter;
+
+        public LocalRackFilter() {
+            this.rack = this.snitch.getRack(FBUtilities.getBroadcastAddress());
+            this.datacenter = snitch.getDatacenter(FBUtilities.getBroadcastAddress());
+        }
+        public boolean shouldInclude(InetAddress endpoint) {
+            return snitch.getDatacenter(endpoint).equals(datacenter) && snitch.getRack(endpoint).equals(rack);
+        }
+    }
+
     public RangeStreamer(TokenMetadata metadata, Collection<Token> tokens, InetAddress address, String description)
     {
         this.metadata = metadata;
