@@ -84,11 +84,14 @@ public class Gossiper implements IFailureDetectionEventListener, GossiperMBean
     static final ApplicationState[] STATES = ApplicationState.values();
     static final List<String> DEAD_STATES = Arrays.asList(VersionedValue.REMOVING_TOKEN, VersionedValue.REMOVED_TOKEN,
                                                           VersionedValue.STATUS_LEFT, VersionedValue.HIBERNATE);
+
+    static final List<String> BOOTSTRAPPING_STATES = Arrays.asList(VersionedValue.STATUS_BOOTSTRAPPING,
+        VersionedValue.STATUS_BOOTSTRAPPING_REPLACE);
+
     static ArrayList<String> SILENT_SHUTDOWN_STATES = new ArrayList<>();
     static {
         SILENT_SHUTDOWN_STATES.addAll(DEAD_STATES);
-        SILENT_SHUTDOWN_STATES.add(VersionedValue.STATUS_BOOTSTRAPPING);
-        SILENT_SHUTDOWN_STATES.add(VersionedValue.STATUS_BOOTSTRAPPING_REPLACE);
+        SILENT_SHUTDOWN_STATES.addAll(BOOTSTRAPPING_STATES);
     }
 
     private volatile ScheduledFuture<?> scheduledGossipTask;
@@ -780,7 +783,7 @@ public class Gossiper implements IFailureDetectionEventListener, GossiperMBean
         {
             return false;
         }
-        return !isDeadState(epState) && !StorageService.instance.getTokenMetadata().isMember(endpoint);
+        return !isSilentShutdownState(epState) && !StorageService.instance.getTokenMetadata().isMember(endpoint);
     }
 
     /**
@@ -856,7 +859,9 @@ public class Gossiper implements IFailureDetectionEventListener, GossiperMBean
                 // check for dead state removal
                 long expireTime = getExpireTimeForEndpoint(endpoint);
                 if (!epState.isAlive() && (now > expireTime)
-                    && (!StorageService.instance.getTokenMetadata().isMember(endpoint)))
+                    && (!StorageService.instance.getTokenMetadata().isMember(endpoint))
+                    && !isBootstrappingState(epState)
+                )
                 {
                     if (logger.isDebugEnabled())
                     {
@@ -1158,6 +1163,15 @@ public class Gossiper implements IFailureDetectionEventListener, GossiperMBean
             return false;
 
         return SILENT_SHUTDOWN_STATES.contains(status);
+    }
+
+    public boolean isBootstrappingState(EndpointState epState)
+    {
+        String status = getGossipStatus(epState);
+        if (status.isEmpty())
+            return false;
+
+        return BOOTSTRAPPING_STATES.contains(status);
     }
 
     private static String getGossipStatus(EndpointState epState)
